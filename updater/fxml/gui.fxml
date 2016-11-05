@@ -21,9 +21,10 @@
             <TableColumn minWidth="50.0" prefWidth="55.0" text="Paths" />
         </columns>
       </TableView>
-      <Button fx:id="queue" layoutX="14.0" layoutY="361.0" mnemonicParsing="false" onAction="#onViewQueueAction" text="View Submission Queue" />
-      <Button fx:id="pack" layoutX="160.0" layoutY="361.0" mnemonicParsing="false" onAction="#onPackButtonAction" text="Pack" />
+      <Button fx:id="queue" layoutX="14.0" layoutY="361.0" mnemonicParsing="false" onAction="#onViewQueueAction" text="Queue" />
+      <Button fx:id="pack" layoutX="156.0" layoutY="361.0" mnemonicParsing="false" onAction="#onPackButtonAction" text="Pack" />
       <Button fx:id="update" layoutX="203.0" layoutY="361.0" mnemonicParsing="false" onAction="#onUpdateButtonAction" text="Update Selected" />
       <TextField fx:id="google2fa" layoutX="616.0" layoutY="361.0" prefHeight="25.0" prefWidth="123.0" promptText="2FA" />
+      <Button fx:id="global" layoutX="72.0" layoutY="361.0" mnemonicParsing="false" onAction="#onGlobalAction" text="Global Path" />
    </children>
 </Pane>

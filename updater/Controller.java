@@ -39,6 +39,7 @@ public class Controller {
     List<JSONObject> scripts = new ArrayList<>();
     List<String> queueCheck = new ArrayList<>();
     HashMap<String, List<String>> paths = new HashMap<>();
+    File globalDirectory = null;
 
     @FXML Button login;
     @FXML Button pack;
@@ -59,8 +60,12 @@ public class Controller {
                 for (String line : lines) {
                     String[] split = line.split("\\|\\|");
                     if (split.length == 2) {
-                        String[] pathSplit = split[1].split(";");
-                        paths.put(split[0], new ArrayList<>(Arrays.asList(pathSplit)));
+                        if (split[0].equals("GLOBALDIR")) {
+                            globalDirectory = new File(split[1]);
+                        } else {
+                            String[] pathSplit = split[1].split(";");
+                            paths.put(split[0], new ArrayList<>(Arrays.asList(pathSplit)));
+                        }
                     }
                 }
             }
@@ -237,22 +242,7 @@ public class Controller {
 
         stage.setScene(new Scene(pane));
         stage.showAndWait();
-
-        List<String> lines = new ArrayList<>();
-        for (String script : paths.keySet()) {
-            StringBuilder builder = new StringBuilder();
-            for (String path : paths.get(script)) {
-                builder.append(path + ";");
-            }
-
-            lines.add(script + "||" + builder.toString());
-        }
-
-        try {
-            Files.write(Paths.get("paths.ini"), lines);
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
+        saveDirectories();
     }
 
     @FXML
@@ -272,8 +262,8 @@ public class Controller {
                 }
             }
         }
-        table.refresh();
 
+        table.refresh();
         if (uploaded) {
             new Thread(() -> {
                 while (queueCheck.size() > 0) {
@@ -281,9 +271,10 @@ public class Controller {
                         Thread.sleep(5000);
                         System.out.println("Checking script queue for data.");
                         if (!checkQueue()) {
-                            if (!login(username.getText(), password.getText())) {
+                            if (username.getText().equals("") || password.getText().equals("")) {
                                 return;
                             }
+                            login(username.getText(), password.getText());
                         }
                     } catch (InterruptedException e) {
                         e.printStackTrace();
@@ -358,6 +349,13 @@ public class Controller {
 
     private void packScripts() {
         try {
+            if (globalDirectory != null) {
+                for (ScriptData data : table.getItems()) {
+                    if (!paths.containsKey(data.name))
+                        paths.put(data.name, new ArrayList<>(Arrays.asList(globalDirectory.toString())));
+                }
+                paths.keySet().stream().filter(script -> !paths.get(script).contains(globalDirectory.toString())).forEach(script -> paths.get(script).add(globalDirectory.toString()));
+            }
             Packer.load(paths);
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Script Packer Complete");
@@ -383,11 +381,47 @@ public class Controller {
         packScripts();
     }
 
+    private void saveDirectories() {
+        List<String> lines = new ArrayList<>();
+        if (globalDirectory != null)
+            lines.add("GLOBALDIR||" + globalDirectory.toString());
+
+        for (String script : paths.keySet()) {
+            StringBuilder builder = new StringBuilder();
+            for (String path : paths.get(script)) {
+                builder.append(path + ";");
+            }
+
+            lines.add(script + "||" + builder.toString());
+        }
+
+        try {
+            Files.write(Paths.get("paths.ini"), lines);
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    @FXML
+    protected void onGlobalAction(ActionEvent event) {
+        Stage stage = new Stage();
+        DirectoryChooser chooser = new DirectoryChooser();
+        chooser.setTitle("Select Global Directory");
+
+        if (globalDirectory != null) {
+            chooser.setInitialDirectory(globalDirectory);
+        }
+
+        globalDirectory = chooser.showDialog(stage);
+        saveDirectories();
+    }
+
     @FXML
     protected void onLoginButtonAction(ActionEvent event) {
         try {
             if (!loadScripts()) {
                 login(username.getText(), password.getText());
+                loadScripts();
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -474,7 +508,7 @@ public class Controller {
         return matcher.find() ? matcher.group(1) : "";
     }
 
-    private boolean login(String username, String password) throws IOException {
+    private void login(String username, String password) throws IOException {
         String html = loadPage("https://tribot.org/forums/login/");
 
         String loginStandardSubmitted = getFormValue("login__standard_submitted", html);
@@ -498,7 +532,6 @@ public class Controller {
 
         MultipartFormDataUtil multipartRequest = new MultipartFormDataUtil("https://tribot.org/forums/login/", params);
         List<String> response = multipartRequest.getResponse();
-        return loadScripts();
     }
 
     public static String getCookies() {

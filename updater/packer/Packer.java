@@ -1,14 +1,10 @@
 package updater.packer;
 
 import jdk.internal.org.objectweb.asm.ClassReader;
-import org.tribot.script.Script;
-import org.tribot.script.ScriptManifest;
 
 import javax.swing.*;
 import java.io.*;
 import java.net.URISyntaxException;
-import java.net.URL;
-import java.net.URLClassLoader;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -16,8 +12,6 @@ import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.Predicate;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
@@ -31,10 +25,10 @@ public class Packer {
     private static File BIN_DIR;
     private static File JAR_FILE;
     private static File TRIBOT_DIR;
-    private static HashMap<String, Set<String>> scriptDependencyMap = new HashMap<>();
-    private static HashMap<Class, String> scriptNameMap = new HashMap<>();
+
     private static HashMap<String, File> zips = new HashMap<>();
     private static HashMap<String, String> versions = new HashMap<>();
+    private static List<String> superScripts = new ArrayList<>();
 
     static {
         try {
@@ -51,35 +45,31 @@ public class Packer {
 
     private static boolean packZip(List<File> files, File zipFile) {
         try {
-            if(!zipFile.getParentFile().exists()) {
+            if (!zipFile.getParentFile().exists())
                 zipFile.mkdirs();
-            }
 
             FileOutputStream e = new FileOutputStream(zipFile);
             ZipOutputStream zos = new ZipOutputStream(e);
-            Iterator var4 = files.iterator();
+            Iterator fileIterator = files.iterator();
 
-            while(var4.hasNext()) {
-                File file = (File)var4.next();
+            while(fileIterator.hasNext()) {
+                File file = (File) fileIterator.next();
                 FileInputStream fis = new FileInputStream(file);
                 ZipEntry zipEntry = new ZipEntry(file.getAbsolutePath().substring(file.getAbsolutePath().lastIndexOf(SRC_DIR.getName()) + 4));
                 zos.putNextEntry(zipEntry);
                 byte[] bytes = new byte[1024];
-
                 int length;
-                while((length = fis.read(bytes)) >= 0) {
+                while((length = fis.read(bytes)) >= 0)
                     zos.write(bytes, 0, length);
-                }
 
                 zos.closeEntry();
                 fis.close();
             }
-
             zos.close();
             e.close();
             return true;
-        } catch (IOException var10) {
-            var10.printStackTrace();
+        } catch (IOException e) {
+            e.printStackTrace();
             return false;
         }
     }
@@ -88,51 +78,89 @@ public class Packer {
         return zips.size() > 0;
     }
 
-    public static void load(HashMap<String, List<String>> scriptPaths) throws IOException, ClassNotFoundException {
-        scriptDependencyMap.clear();
-        scriptNameMap.clear();
+    public static int findSubScripts(String superScript) throws IOException {
+        int subScriptCount = 0;
+        List<File> classFiles = getDirFiles(BIN_DIR, (file) -> file.getName().endsWith(".class"));
+        for (File classFile : classFiles) {
+            ClassReader fullClassName = new ClassReader(new FileInputStream(classFile));
+            if (fullClassName.getSuperName().endsWith(superScript)) {
+                subScriptCount++;
+            }
+        }
 
-        List classFiles = getDirFiles(BIN_DIR, (file) -> file.getName().endsWith(".class"));
-        Iterator scriptSelector = classFiles.iterator();
-        while (scriptSelector.hasNext()) {
-            File scriptName = (File)scriptSelector.next();
-            ClassReader fullScriptName = new ClassReader(new FileInputStream(scriptName));
-            if (fullScriptName.getSuperName().endsWith("org/tribot/script/Script")) {
+        return subScriptCount;
+    }
+
+    public static void findSuperScript() throws IOException {
+        List<File> classFiles = getDirFiles(BIN_DIR, (file) -> file.getName().endsWith(".class"));
+        for (File classFile : classFiles) {
+            ClassReader fullClassName = new ClassReader(new FileInputStream(classFile));
+            if (fullClassName.getSuperName().endsWith("org/tribot/script/Script")) {
+                if (superScripts.contains(fullClassName.getClassName())) continue;
+                if (findSubScripts(fullClassName.getClassName()) > 0) {
+                    System.out.println("Found super script: " + fullClassName.getClassName());
+                    if (!superScripts.contains(fullClassName.getClassName())) {
+                        superScripts.add(fullClassName.getClassName());
+                    }
+                }
+            }
+        }
+    }
+
+    public static void loadScript(String scriptName, List<String> scriptPaths) throws IOException, ClassNotFoundException {
+        findSuperScript();
+
+        List<File> classFiles = getDirFiles(BIN_DIR, (file) -> file.getName().endsWith(".class"));
+        for (File classFile : classFiles) {
+            ClassReader fullClassName = new ClassReader(new FileInputStream(classFile));
+            if (fullClassName.getSuperName().endsWith("org/tribot/script/Script") || superScripts.contains(fullClassName.getSuperName())) {
                 DependencyVisitor dependencies = new DependencyVisitor();
-                ScriptManifestVisitor zipFile = new ScriptManifestVisitor();
-                fullScriptName.accept(zipFile, 0);
-                fullScriptName.accept(dependencies, 0);
-                findAllSubDependencies(dependencies);
-                String scriptName1;
-                if (zipFile.getAttributes().size() > 0) {
-                    Object version = zipFile.getAttributes().get("version");
-                    scriptName1 = zipFile.getAttributes().get("name") + " V" + (version == null?"1.0":version);
+                ScriptManifestVisitor manifest = new ScriptManifestVisitor();
+                fullClassName.accept(manifest, 0);
+                fullClassName.accept(dependencies, 0);
+
+                String zipName;
+                if (manifest.getAttributes().size() > 0) {
+                    Object version = manifest.getAttributes().get("version");
+                    zipName = manifest.getAttributes().get("name") + " V" + (version == null ? "1.0" : version);
+                    if (!zipName.contains(scriptName)) {
+                        //System.out.println(zipName + " does not contain " + scriptName + " do not process.");
+                        continue;
+                    }
+
+                    versions.put(scriptName, (version == null ? "1.0" : version) + "");
                 } else {
-                    scriptName1 = scriptName.getName().substring(0, scriptName.getName().length() - 6);
+                    //System.out.println(fullClassName.getClassName() + " does not contain a script manifest.");
+                    continue; //Do not process without manifests
                 }
 
-                ClassLoader loader = new URLClassLoader(new URL[] {BIN_DIR.toURL()});
-                Class clazz = loader.loadClass(fullScriptName.getClassName().replaceAll("/", "."));
+                findAllSubDependencies(dependencies);
+                Set dependencyClasses = dependencies.getDependencyClasses();
+                File zipFolder = new File(JAR_FILE.getParentFile(), "zips");
+                File zipFile = getZipFile(zipFolder, zipName);
 
-                scriptNameMap.put(clazz, scriptName1);
-                scriptDependencyMap.put(fullScriptName.getClassName(), dependencies.getDependencyClasses());
-            }
-        }
+                List<File> dirs = new ArrayList<>();
+                Collections.addAll(dirs, scriptPaths.stream().map(f -> new File(f)).collect(Collectors.toList()).toArray(new File[0]));
+                List<File> sources = new ArrayList<>();
+                for (File dir : dirs) {
+                    Collections.addAll(sources, getDirFiles(dir, (f) -> f.getName().endsWith(".java")).toArray(new File[0]));
+                }
 
-        for (Class scriptClass : scriptNameMap.keySet()) {
-            for (String scriptName : scriptPaths.keySet()) {
-                if (scriptNameMap.get(scriptClass).contains(scriptName)) {
-                    System.out.println("Found script: " + scriptName);
-                    if (scriptPaths.get(scriptName).size() == 0) return;
-
-                    List<File> sourceDirs = scriptPaths.get(scriptName).stream().map(s -> new File(s)).collect(Collectors.toList());
-                    File zip = pack(scriptClass, sourceDirs, scriptName);
-                    if (zip != null) zips.put(scriptName, zip);
+                System.out.println("--- PACKING " + scriptName + " ---");
+                packZip(getScriptFiles(dirs, sources, dependencyClasses), zipFile);
+                System.out.println("--- END PACKING " + scriptName + " ---");
+                if (zipFile != null) {
+                    zips.put(scriptName, zipFile);
                 }
             }
         }
+    }
 
-        System.out.println("Loaded " + scriptNameMap.size() + " scripts and " + scriptDependencyMap.size() + " dependencies.");
+    public static void load(HashMap<String, List<String>> scriptPaths) throws IOException, ClassNotFoundException {
+        for (String scriptName : scriptPaths.keySet()) {
+            if (scriptPaths.get(scriptName).size() > 0)
+                loadScript(scriptName, scriptPaths.get(scriptName));
+        }
     }
 
     public static File getZip(String name) {
@@ -141,50 +169,6 @@ public class Packer {
 
     public static String getVersion(String name) {
         return versions.containsKey(name) ? versions.get(name) : "1.0";
-    }
-
-    public static File pack(Class<? extends Script> script, List<File> dirs, String name) {
-        try {
-            List<File> sources = new ArrayList<>();
-            File e = new File(JAR_FILE.getParentFile(), "zips");
-            if (!e.exists()) e.mkdir();
-            for (File dir : dirs) {
-                Collections.addAll(sources, getDirFiles(dir, (f) -> f.getName().endsWith(".java")).toArray(new File[0]));
-            }
-
-            System.out.println("Loaded " + sources.size() + " source files.");
-            String scriptName;
-            if(script.isAnnotationPresent(ScriptManifest.class)) {
-                ScriptManifest codeSrc = script.getAnnotation(ScriptManifest.class);
-                scriptName = codeSrc.name() + " V" + codeSrc.version();
-                versions.put(name, codeSrc.version() + "");
-            } else {
-                Logger.getLogger("Logger").log(Level.WARNING, "No script manifest found!");
-                scriptName = script.getSimpleName();
-            }
-
-
-            File codeSrc1 = new File(script.getProtectionDomain().getCodeSource().getLocation().toURI());
-            File scriptFile = new File(codeSrc1, script.getName().replace('.', File.separatorChar) + ".class");
-            ClassReader cr = new ClassReader(new FileInputStream(scriptFile));
-            DependencyVisitor dv = new DependencyVisitor();
-            cr.accept(dv, 0);
-            findAllSubDependencies(dv);
-            System.out.printf("Found %d dependencies for the script: %s\n", new Object[]{Integer.valueOf(dv.getDependencyClasses().size()), scriptName});
-            Set var10000 = dv.getDependencyClasses();
-            PrintStream var10001 = System.out;
-            System.out.getClass();
-            var10000.forEach(var10001::println);
-            System.out.println();
-            File zipFile = getZipFile(e, scriptName);
-            packZip(getScriptFiles(dirs, sources, dv.getDependencyClasses()), zipFile);
-            System.out.println("Successfully packed: " + zipFile.getName());
-            return zipFile;
-        } catch (URISyntaxException | IOException var9) {
-            var9.printStackTrace();
-        }
-
-        return null;
     }
 
     private static File getZipFile(File scrDir, String scriptName) {
@@ -203,20 +187,17 @@ public class Packer {
 
     private static void findAllSubDependencies(DependencyVisitor dv, Set<String> checkedClasses) throws IOException {
         Iterator var2 = (new HashSet(dv.getDependencyClasses())).iterator();
-
         while(var2.hasNext()) {
-            String d = (String)var2.next();
-            if(d.startsWith("scripts/")) {
+            String d = (String) var2.next();
+            if (d.startsWith("scripts/")) {
                 if (!checkedClasses.contains(d)) {
                     ClassReader cr = new ClassReader(new FileInputStream(new File(BIN_DIR, d + ".class")));
                     cr.accept(dv, 0);
                     checkedClasses.add(d);
-                    //System.out.println(d);
                     findAllSubDependencies(dv, checkedClasses);
                 }
             }
         }
-
     }
 
     private static List<File> getScriptFiles(List<File> sourceDirs, List<File> sourceFiles, Set<String> dependencies) {
