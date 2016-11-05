@@ -160,7 +160,7 @@ public class Controller {
 
         TableColumn statusCol = new TableColumn("Status");
         statusCol.setMinWidth(100);
-        statusCol.setPrefWidth(175);
+        statusCol.setPrefWidth(160);
         statusCol.setCellValueFactory(new Callback<TableColumn.CellDataFeatures, ObservableValue>() {
             @Override
             public ObservableValue call(TableColumn.CellDataFeatures param) {
@@ -429,6 +429,9 @@ public class Controller {
         try {
             if (!loadScripts()) {
                 login(username.getText(), password.getText());
+                if (google2fa.getText().equals(""))
+                    login(username.getText(), password.getText());
+
                 loadScripts();
             }
         } catch (IOException e) {
