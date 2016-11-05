@@ -345,7 +345,7 @@ public class Controller {
 
         String url = "https://tribot.org/repository/script/edit/#/source/".replace("#", script.id);
         LinkedHashMap<String, String> params = new LinkedHashMap<>();
-        params.put("version", script.version);
+        params.put("version", Packer.getVersion(script.name));
 
         try {
             MultipartFormDataUtil multipartRequest = new MultipartFormDataUtil(url, params, zip);

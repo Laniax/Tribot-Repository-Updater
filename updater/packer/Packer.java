@@ -34,6 +34,7 @@ public class Packer {
     private static HashMap<String, Set<String>> scriptDependencyMap = new HashMap<>();
     private static HashMap<Class, String> scriptNameMap = new HashMap<>();
     private static HashMap<String, File> zips = new HashMap<>();
+    private static HashMap<String, String> versions = new HashMap<>();
 
     static {
         try {
@@ -125,7 +126,7 @@ public class Packer {
                     if (scriptPaths.get(scriptName).size() == 0) return;
 
                     List<File> sourceDirs = scriptPaths.get(scriptName).stream().map(s -> new File(s)).collect(Collectors.toList());
-                    File zip = pack(scriptClass, sourceDirs);
+                    File zip = pack(scriptClass, sourceDirs, scriptName);
                     if (zip != null) zips.put(scriptName, zip);
                 }
             }
@@ -138,7 +139,11 @@ public class Packer {
         return zips.containsKey(name) ? zips.get(name) : null;
     }
 
-    public static File pack(Class<? extends Script> script, List<File> dirs) {
+    public static String getVersion(String name) {
+        return versions.containsKey(name) ? versions.get(name) : "1.0";
+    }
+
+    public static File pack(Class<? extends Script> script, List<File> dirs, String name) {
         try {
             List<File> sources = new ArrayList<>();
             File e = new File(JAR_FILE.getParentFile(), "zips");
@@ -152,6 +157,7 @@ public class Packer {
             if(script.isAnnotationPresent(ScriptManifest.class)) {
                 ScriptManifest codeSrc = script.getAnnotation(ScriptManifest.class);
                 scriptName = codeSrc.name() + " V" + codeSrc.version();
+                versions.put(name, codeSrc.version() + "");
             } else {
                 Logger.getLogger("Logger").log(Level.WARNING, "No script manifest found!");
                 scriptName = script.getSimpleName();
