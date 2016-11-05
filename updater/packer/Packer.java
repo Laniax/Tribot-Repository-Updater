@@ -123,7 +123,7 @@ public class Packer {
                 if (manifest.getAttributes().size() > 0) {
                     Object version = manifest.getAttributes().get("version");
                     zipName = manifest.getAttributes().get("name") + " V" + (version == null ? "1.0" : version);
-                    if (!zipName.contains(scriptName)) {
+                    if (!zipName.toLowerCase().contains(scriptName.toLowerCase())) {
                         //System.out.println(zipName + " does not contain " + scriptName + " do not process.");
                         continue;
                     }

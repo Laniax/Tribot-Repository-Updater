@@ -356,7 +356,15 @@ public class Controller {
                 }
                 paths.keySet().stream().filter(script -> !paths.get(script).contains(globalDirectory.toString())).forEach(script -> paths.get(script).add(globalDirectory.toString()));
             }
-            Packer.load(paths);
+
+            HashMap<String, List<String>> packPaths = new HashMap<>();
+            for (ScriptData data : table.getItems()) {
+                if (data.selected) {
+                    packPaths.put(data.name, paths.get(data.name));
+                }
+            }
+
+            Packer.load(packPaths);
             Alert alert = new Alert(Alert.AlertType.INFORMATION);
             alert.setTitle("Script Packer Complete");
             alert.setHeaderText(null);
