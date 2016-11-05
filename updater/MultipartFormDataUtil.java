@@ -38,7 +38,7 @@ public class MultipartFormDataUtil {
         conn.setRequestProperty("Cache-Control", "max-age=0");
         conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=----WebKitFormBoundary" + boundary);
         conn.setRequestProperty("Content-Length", getContentLength(params));
-        conn.setRequestProperty("Cookie", "__cfduid=d8d4c36999855e389de94f515940ef7121463283582; ips4_IPSSessionFront=3a118037fe670166fe1b51cc777d6209; ips4_hasJS=true; ips4_member_id=52398; ips4_pass_hash=baec4fe50810aaecbd72bd546869ee08; ips4_ipsTimezone=America/Chicago; repo_sort=default; __utmt=1; __utma=23143679.1640161904.1463283588.1477961529.1477968973.1043; __utmb=23143679.92.10.1477968973; __utmc=23143679; __utmz=23143679.1477944745.1040.58.utmcsr=sythe.org|utmccn=(referral)|utmcmd=referral|utmcct=/threads/looking-for-a-private-tribot-combat-script/");
+        conn.setRequestProperty("Cookie",  Controller.getCookies());
         conn.setRequestProperty("Origin", "https://tribot.org");
         conn.setDoOutput(true);
 
@@ -84,7 +84,7 @@ public class MultipartFormDataUtil {
         conn.setRequestProperty("Cache-Control", "max-age=0");
         conn.setRequestProperty("Content-Length", file.length() + "");
         conn.setRequestProperty("Content-Type", "multipart/form-data; boundary=----WebKitFormBoundary" + boundary);
-        conn.setRequestProperty("Cookie", "__cfduid=d8d4c36999855e389de94f515940ef7121463283582; ips4_IPSSessionFront=3a118037fe670166fe1b51cc777d6209; ips4_hasJS=true; ips4_member_id=52398; ips4_pass_hash=baec4fe50810aaecbd72bd546869ee08; ips4_ipsTimezone=America/Chicago; repo_sort=default; __utmt=1; __utma=23143679.1640161904.1463283588.1477961529.1477968973.1043; __utmb=23143679.92.10.1477968973; __utmc=23143679; __utmz=23143679.1477944745.1040.58.utmcsr=sythe.org|utmccn=(referral)|utmcmd=referral|utmcct=/threads/looking-for-a-private-tribot-combat-script/");
+        conn.setRequestProperty("Cookie", Controller.getCookies());
         conn.setRequestProperty("Origin", "https://tribot.org");
         conn.setDoOutput(true);
 
