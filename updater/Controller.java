@@ -264,6 +264,7 @@ public class Controller {
                 if (zip != null) {
                     System.out.println("Found zip for " + data.name);
                     updateScript(data, zip);
+                    data.status = "UPLOADING";
                     queueCheck.add(data.name);
                     uploaded = true;
                 } else {
@@ -271,6 +272,7 @@ public class Controller {
                 }
             }
         }
+        table.refresh();
 
         if (uploaded) {
             new Thread(() -> {
