@@ -3,9 +3,15 @@ package updater.packer;
 import jdk.internal.org.objectweb.asm.ClassReader;
 
 import javax.swing.*;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.*;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.Predicate;
@@ -168,19 +174,21 @@ public class Packer {
         return versions.containsKey(name) ? versions.get(name) : "1.0";
     }
 
-    private static File getZipFile(File scrDir, String scriptName) throws IOException {
+    private static File getZipFile(File scrDir, String scriptName) {
         File zipFile = new File(scrDir, scriptName + ".zip");
 
-        Files.walkFileTree(scrDir.toPath(), new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                if (file.toString().contains(scriptName)) {
-                    file.toFile().delete();
+        try {
+            Files.walkFileTree(scrDir.toPath(), new SimpleFileVisitor<Path>() {
+                @Override
+                public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                    if (file.toString().contains(scriptName)) {
+                        file.toFile().delete();
+                    }
+                    return FileVisitResult.CONTINUE;
                 }
-                return FileVisitResult.CONTINUE;
-            }
-        });
-        
+            });
+        } catch (IOException e) { }
+
         return zipFile;
     }
 
