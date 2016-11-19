@@ -1,27 +1,51 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<?import javafx.scene.control.*?>
-<?import javafx.scene.layout.Pane?>
-<Pane maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8" xmlns:fx="http://javafx.com/fxml/1" fx:controller="updater.Controller">
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.PasswordField?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.RowConstraints?>
+
+
+<GridPane minWidth="760.0" prefHeight="398.0" prefWidth="800.0" xmlns="http://javafx.com/javafx/8.0.60" xmlns:fx="http://javafx.com/fxml/1" fx:controller="updater.Controller">
+   <columnConstraints>
+      <ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" />
+   </columnConstraints>
+   <rowConstraints>
+      <RowConstraints maxHeight="1.7976931348623157E308" minHeight="10.0" prefHeight="357.0" vgrow="ALWAYS" />
+      <RowConstraints maxHeight="40.0" minHeight="40.0" prefHeight="40.0" valignment="TOP" vgrow="NEVER" />
+   </rowConstraints>
    <children>
-      <Button fx:id="login" layoutX="740.0" layoutY="361.0" mnemonicParsing="false" onAction="#onLoginButtonAction" text="Login" />
-      <TextField fx:id="username" layoutX="318.0" layoutY="361.0" promptText="Username" />
-      <PasswordField fx:id="password" layoutX="467.0" layoutY="361.0" promptText="Password" />
-      <TableView fx:id="table" layoutY="9.0" prefHeight="340.0" prefWidth="800.0">
+      <TableView fx:id="table" maxWidth="1.7976931348623157E308" prefHeight="340.0" prefWidth="800.0">
         <columns>
-          <TableColumn prefWidth="25.0" text="✓" />
-            <TableColumn prefWidth="100.0" text="ID" />
-          <TableColumn prefWidth="200.0" text="Name" />
-            <TableColumn minWidth="0.0" prefWidth="100.0" text="Version" />
-            <TableColumn minWidth="0.0" prefWidth="150.0" text="Category" />
-            <TableColumn minWidth="50.0" prefWidth="170.0" text="Status" />
-            <TableColumn minWidth="50.0" prefWidth="55.0" text="Paths" />
+          <TableColumn maxWidth="1.7976931348623157E308" minWidth="25.0" prefWidth="-1.0" text="✓" />
+            <TableColumn maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="-1.0" text="ID" />
+          <TableColumn maxWidth="1.7976931348623157E308" minWidth="200.0" prefWidth="-1.0" text="Name" />
+            <TableColumn maxWidth="1.7976931348623157E308" minWidth="100.0" prefWidth="-1.0" text="Version" />
+            <TableColumn maxWidth="1.7976931348623157E308" minWidth="150.0" prefWidth="-1.0" text="Category" />
+            <TableColumn maxWidth="1.7976931348623157E308" minWidth="170.0" prefWidth="-1.0" text="Status" />
+            <TableColumn maxWidth="1.7976931348623157E308" minWidth="55.0" prefWidth="-1.0" text="Paths" />
         </columns>
       </TableView>
-      <Button fx:id="queue" layoutX="14.0" layoutY="361.0" mnemonicParsing="false" onAction="#onViewQueueAction" text="Queue" />
-      <Button fx:id="pack" layoutX="156.0" layoutY="361.0" mnemonicParsing="false" onAction="#onPackButtonAction" text="Pack" />
-      <Button fx:id="update" layoutX="203.0" layoutY="361.0" mnemonicParsing="false" onAction="#onUpdateButtonAction" text="Update Selected" />
-      <TextField fx:id="google2fa" layoutX="616.0" layoutY="361.0" prefHeight="25.0" prefWidth="123.0" promptText="2FA" />
-      <Button fx:id="global" layoutX="72.0" layoutY="361.0" mnemonicParsing="false" onAction="#onGlobalAction" text="Global Path" />
+      <HBox prefHeight="0.0" prefWidth="366.0" GridPane.rowIndex="1">
+         <children>
+            <Button fx:id="queue" mnemonicParsing="false" onAction="#onViewQueueAction" text="Queue" />
+            <Button fx:id="global" mnemonicParsing="false" onAction="#onGlobalAction" text="Global Path" />
+            <Button fx:id="pack" mnemonicParsing="false" onAction="#onPackButtonAction" text="Pack" />
+            <Button fx:id="update" mnemonicParsing="false" onAction="#onUpdateButtonAction" text="Update Selected" />
+            <TextField fx:id="username" promptText="Username" />
+            <PasswordField fx:id="password" promptText="Password" />
+            <TextField fx:id="google2fa" prefHeight="25.0" prefWidth="123.0" promptText="2FA" />
+            <Button fx:id="login" mnemonicParsing="false" onAction="#onLoginButtonAction" text="Login" />
+         </children>
+         <GridPane.margin>
+            <Insets left="10.0" top="10.0" />
+         </GridPane.margin>
+      </HBox>
    </children>
-</Pane>
+</GridPane>
