@@ -8,10 +8,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
+import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.Predicate;
@@ -51,10 +48,12 @@ public class Packer {
             if (!zipFile.getParentFile().exists())
                 zipFile.mkdirs();
 
+            if (zipFile.exists() && zipFile.isDirectory())
+                zipFile.delete();
+
             FileOutputStream e = new FileOutputStream(zipFile);
             ZipOutputStream zos = new ZipOutputStream(e);
             Iterator fileIterator = files.iterator();
-
             while(fileIterator.hasNext()) {
                 File file = (File) fileIterator.next();
                 FileInputStream fis = new FileInputStream(file);
@@ -211,20 +210,60 @@ public class Packer {
         }
     }
 
+    private static List<Path> listFiles(Path path) throws IOException {
+        Deque<Path> stack = new ArrayDeque<Path>();
+        final List<Path> files = new LinkedList<>();
+
+        stack.push(path);
+
+        while (!stack.isEmpty()) {
+            DirectoryStream<Path> stream = Files.newDirectoryStream(stack.pop());
+            for (Path entry : stream) {
+                if (Files.isDirectory(entry)) {
+                    if (!entry.toString().contains(".git"))
+                        stack.push(entry);
+                }
+                else {
+                    files.add(entry);
+                }
+            }
+            stream.close();
+        }
+
+        return files;
+    }
+
     private static List<File> getScriptFiles(List<File> sourceDirs, List<File> sourceFiles, Set<String> dependencies) {
         ArrayList sourceFilesToPack = new ArrayList();
         ArrayList missingFiles = new ArrayList();
         dependencies.stream().filter((d) ->  d.startsWith("scripts/") && d.indexOf(36) == -1).map((d) -> d.replace('/', File.separatorChar)).forEach((d) -> {
+
+            boolean found = false;
+
             for (File dir : sourceDirs) {
-                File file = new File(dir, d + ".java");
-                if (sourceFiles.stream().anyMatch((f) -> f.equals(file))) {
-                    sourceFilesToPack.add(file);
-                    return;
+
+                try {
+                    List<Path> files = listFiles(dir.toPath());
+
+                    for (Path path : files) {
+
+                        if (path.endsWith(d + ".java")) {
+                            found = true;
+                            sourceFilesToPack.add(path.toFile());
+
+                            System.out.println("Found file: " + d);
+                            break;
+                        }
+                    }
+                } catch (IOException e) {
+                    e.printStackTrace();
                 }
             }
 
-            System.out.println("Missing file: " + d);
-            System.exit(0);
+            if (!found) {
+                missingFiles.add(d);
+            }
+
         });
 
         if(missingFiles.size() > 0) {
